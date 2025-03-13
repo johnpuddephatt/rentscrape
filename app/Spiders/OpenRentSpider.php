@@ -1,0 +1,222 @@
+<?php
+
+namespace App\Spiders;
+
+use App\Models\Listing;
+use Generator;
+use Illuminate\Support\Facades\Log;
+use RoachPHP\Downloader\Middleware\RequestDeduplicationMiddleware;
+use RoachPHP\Extensions\LoggerExtension;
+use RoachPHP\Extensions\StatsCollectorExtension;
+use RoachPHP\Http\Response;
+use RoachPHP\Spider\BasicSpider;
+use RoachPHP\Spider\ParseResult;
+use Symfony\Component\DomCrawler\Crawler;
+use RoachPHP\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Http;
+
+class OpenRentSpider extends BasicSpider
+{
+    public $postcode;
+
+
+    // public array $startUrls = [
+    //     'https://www.openrent.co.uk/properties-to-rent/LS8?area=1'
+    // ];
+
+    protected function initialRequests(): array
+    {
+        return [
+            new Request(
+                'GET',
+                'https://www.openrent.co.uk/properties-to-rent/' . $this->context['outcode'] . '?area=1',
+                [$this, 'parse']
+            ),
+        ];
+    }
+
+    public array $downloaderMiddleware = [
+        RequestDeduplicationMiddleware::class,
+    ];
+
+    public array $spiderMiddleware = [
+        //
+    ];
+
+    public array $itemProcessors = [
+        //
+    ];
+
+    public array $extensions = [
+        LoggerExtension::class,
+        StatsCollectorExtension::class,
+    ];
+
+    public int $concurrency = 2;
+
+    public int $requestDelay = 1;
+
+    /**
+     * @return Generator<ParseResult>
+     */
+    public function parse(Response $response): Generator
+    {
+
+
+        $result_count = -1;
+
+        $result_count = $response
+            ->filter('.filter-info-output .prop-count')
+            ->text();
+
+
+        $links = $response->filter('.property-list a.pli')->each(
+            fn(Crawler $node, $i) => $node->attr('href')
+        );
+
+        foreach ($links as $link) {
+            // echo 'requesting property at ' . $link . PHP_EOL;
+            yield $this->request('GET', 'https://www.openrent.co.uk' . $link, 'parseProperty');
+        }
+
+        for ($page = 2; $page <= ceil($result_count / 20); $page++) {
+            // echo 'requesting page ' . $page . PHP_EOL;
+            $skip = ($page - 1) * 20;
+            yield $this->request('GET', "https://www.openrent.co.uk/properties-to-rent/" . $this->context['outcode'] . "?skip=$skip&area=1", 'parsePage');
+        }
+    }
+
+    public function parsePage(Response $response): \Generator
+    {
+        // echo 'Parsing page... ' . PHP_EOL;
+        $links = $response->filter('.property-list a.pli')->each(
+            fn(Crawler $node, $i) => $node->attr('href')
+        );
+
+        foreach ($links as $link) {
+            yield $this->request('GET', 'https://www.openrent.co.uk' . $link, 'parseProperty');
+        }
+    }
+
+    public function parseProperty(Response $response): \Generator
+    {
+
+        $url = $response->getRequest()->getUri();
+        $url_parts = explode('/', $url);
+        $id = end($url_parts);
+
+        try {
+            $price = $response->filter('.fs-d-4.fs-sm-d-3.fw-semibold.text-black')->text();
+        } catch (\Exception $e) {
+            try {
+                $price = $response->filter('.mb-1.fs-d-3.fw-semibold.lh-1')->text();
+            } catch (\Exception $e) {
+                $price = null;
+            }
+        }
+
+        try {
+            $heading = $response->filter('.fs-d-4.fs-lg-d-3.lh-md-sm')->text();
+        } catch (\Exception $e) {
+            $heading = $response->filter('h1')->text();
+        }
+
+
+
+        $postcode = $response->filter('a[href^="/comparebroadband"]')->attr('href');
+        $postcode = str_replace('%20', ' ', str_replace('/comparebroadband?postCode=', '', $postcode));
+
+
+
+        try {
+            $bedrooms = str_replace(' bedrooms', '', $response->filter('[data-lucide="bed"]')->nextAll()->text());
+        } catch (\Exception $e) {
+            $bedrooms = $response->filter('[data-lucide="bed"]')->closest('dt')->nextAll()->text();
+        }
+
+        try {
+            $bathrooms = str_replace(' bathrooms', '', $response->filter('[data-lucide="bath"]')->nextAll()->text());
+        } catch (\Exception $e) {
+            $bathrooms = $response->filter('[data-lucide="bath"]')->closest('dt')->nextAll()->text();
+        }
+
+        try {
+            $tenants = $response->filter('[data-lucide="users"]')->nextAll()->text();
+        } catch (\Exception $e) {
+            try {
+                $tenants = $response->filter('[data-lucide="users"]')->closest('dt')->nextAll()->text();
+            } catch (\Exception $e) {
+                $tenants = null;
+            }
+        }
+
+        if ($heading) {
+            if ($pos = strpos($heading, ',')) {
+                $address = ltrim(substr($heading, $pos + 1));
+            }
+
+            $heading_parts = explode(',', $heading);
+            $property_type = str_replace($bedrooms . ' Bed ', '', $heading_parts[0]);
+        }
+
+
+
+
+        try {
+            $trs = $response->filterXpath("//h2[text()='Tenant Preference']")->nextAll()->filter('tr');
+            if ($trs->count() == 0) {
+                // Fallback for variations in the page layout
+                $trs = $response->filterXpath("//h2[text()='Tenant Preference']")->closest('div')->nextAll()->filter('tr');
+            }
+
+            $preferences = [];
+            $trs->each(function (Crawler $node) use (&$preferences) {
+                $label = $node->filter('td')->text();
+                $preferences[$label] = $node->filter('td')->nextAll()->filter('span')->attr('data-lucide') == 'check';
+            });
+        } catch (\Exception $e) {
+            $preferences = [];
+        }
+
+        $address_data = Http::get("https://api.postcodes.io/postcodes/{$postcode}")->json()['result'];
+
+        $listing = [
+            // 'url'   => $url,
+            'description' => $heading,
+            'address' => $address,
+            'latitude' => $address_data['latitude'] ?? null,
+            'longitude' => $address_data['longitude'] ?? null,
+            'property_status' => 'to rent',
+            'property_type' => $property_type,
+            'rental_price' => preg_replace('/[^0-9\.]/', '', $price),
+            'bedrooms' => $bedrooms,
+            'bathrooms' => $bathrooms,
+            'postcode' => $postcode,
+            'outcode' => rtrim(substr($postcode, 0, -3)),
+            'district' =>
+            preg_replace('/[^A-Z].*/', '', $postcode),
+            'subcode' => substr($postcode, 0, -2),
+
+            'student_friendly' => $preferences['Student Friendly'] ?? null,
+            'families_allowed' => $preferences['Families Allowed'] ?? null,
+            'pets_allowed' => $preferences['Pets Allowed'] ?? null,
+            'smokers_allowed' => $preferences['Smokers Allowed'] ?? null,
+            'dss_covers_rent' => Arr::first($preferences, fn($value, $key) => Str::contains($key, 'DSS')) ?? null,
+
+            // 'tenants' => $tenants,
+            // 'preferences' => $preferences,
+        ];
+
+        Listing::updateOrCreate(
+            [
+                'report_id' => $this->context['report_id'],
+                'listing_id' => 'OR_' . $id,
+            ],
+            $listing
+        );
+
+        yield $this->item($listing);
+    }
+}
