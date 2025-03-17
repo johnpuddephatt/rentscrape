@@ -180,7 +180,12 @@ class OpenRentSpider extends BasicSpider
             $preferences = [];
         }
 
-        $address_data = Http::get("https://api.postcodes.io/postcodes/{$postcode}")->json()['result'];
+        try {
+            $address_data = Http::retry(3, 1000)->get("https://api.postcodes.io/postcodes/{$postcode}")->json()['result'];
+        } catch (\Exception $e) {
+            $address_data = [];
+        }
+
 
         $listing = [
             // 'url'   => $url,
