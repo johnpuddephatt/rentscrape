@@ -70,6 +70,11 @@ class FetchZooplaApi implements ShouldQueue
                 $latitude = $listing['location']['coordinates']['latitude'];
                 $longitude = $listing['location']['coordinates']['longitude'];
 
+                try {
+                    $postcode = Http::retry(3, 1000)->get("https://api.postcodes.io/postcodes/?lon={$longitude}&lat={$latitude}")->json()['result'][0] ?? null;
+                } catch (\Exception $e) {
+                    $postcode = [];
+                }
                 $postcode = Http::get("https://api.postcodes.io/postcodes/?lon={$longitude}&lat={$latitude}")->json()['result'][0] ?? null;
 
                 ray($listing);
@@ -96,11 +101,11 @@ class FetchZooplaApi implements ShouldQueue
                         'latitude' => $listing['location']['coordinates']['latitude'],
                         'longitude' => $listing['location']['coordinates']['longitude'],
 
-                        'postcode' => $postcode['postcode'],
-                        'outcode' => $postcode['outcode'],
+                        'postcode' => $postcode['postcode'] ?? null,
+                        'outcode' => $postcode['outcode'] ?? null,
                         'district' =>
-                        preg_replace('/[^A-Z].*/', '', $postcode['postcode'],),
-                        'subcode' => substr($postcode['postcode'], 0, -2),
+                        preg_replace('/[^A-Z].*/', '', $postcode['postcode'] ?? null),
+                        'subcode' => substr($postcode['postcode'] ?? null, 0, -2),
 
                     ]
                 );
