@@ -106,7 +106,7 @@ class ReportResource extends Resource
                 ]),
             ])
             ->recordUrl(fn(Report $record): string => ReportResource::getUrl('view', ['record' => $record]))
-        ;
+            ->poll('5s');
     }
 
     public static function infolist(Infolist $infolist): Infolist
