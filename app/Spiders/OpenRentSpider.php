@@ -161,9 +161,6 @@ class OpenRentSpider extends BasicSpider
             $property_type = str_replace($bedrooms . ' Bed ', '', $heading_parts[0]);
         }
 
-
-
-
         try {
             $trs = $response->filterXpath("//h2[text()='Tenant Preference']")->nextAll()->filter('tr');
             if ($trs->count() == 0) {
@@ -184,6 +181,17 @@ class OpenRentSpider extends BasicSpider
             $address_data = Http::retry(3, 1000)->get("https://api.postcodes.io/postcodes/{$postcode}")->json()['result'];
         } catch (\Exception $e) {
             $address_data = [];
+        }
+
+        try {
+            $landlord = $response->filterXpath("//h2[text()='Meet the landlord']")->nextAll()->text();
+        } catch (\Exception $e) {
+            try {
+                $landlord = $response->filterXpath("//h2[text()='Meet the Landlord']")->nextAll()->nextAll()->children('p')->text();
+            } catch (\Exception $e) {
+                echo '2. No landlord found for ' . $url;
+                $landlord = null;
+            }
         }
 
 
@@ -210,6 +218,7 @@ class OpenRentSpider extends BasicSpider
             'smokers_allowed' => $preferences['Smokers Allowed'] ?? null,
             'dss_covers_rent' => Arr::first($preferences, fn($value, $key) => Str::contains($key, 'DSS')) ?? null,
 
+            'landlord' => $landlord,
             // 'tenants' => $tenants,
             // 'preferences' => $preferences,
         ];

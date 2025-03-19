@@ -37,6 +37,7 @@ class ListingExporter extends Exporter
             ExportColumn::make('pets_allowed'),
             ExportColumn::make('smokers_allowed'),
             ExportColumn::make('dss_covers_rent'),
+            ExportColumn::make('landlord'),
         ];
     }
 

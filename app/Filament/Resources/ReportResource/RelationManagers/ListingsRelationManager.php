@@ -53,8 +53,8 @@ class ListingsRelationManager extends RelationManager
             ->recordTitleAttribute('id')
             ->columns([
 
-                // Tables\Columns\TextColumn::make('listing_id')
-                //     ->searchable(),
+                Tables\Columns\TextColumn::make('listing_id')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -68,13 +68,12 @@ class ListingsRelationManager extends RelationManager
                     ->sortable(),
                 Tables\Columns\TextColumn::make('postcode')
                     ->searchable(),
-
-
-
                 Tables\Columns\TextColumn::make('property_type')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('property_status')
                     ->label('Status')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('landlord')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('bedrooms')
                     ->label('Beds')

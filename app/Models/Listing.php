@@ -27,7 +27,8 @@ class Listing extends Model
         'families_allowed',
         'pets_allowed',
         'smokers_allowed',
-        'dss_covers_rent'
+        'dss_covers_rent',
+        'landlord'
     ];
 
     public $casts = [

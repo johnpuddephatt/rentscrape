@@ -6,7 +6,7 @@
 
 @config '../../tailwind.admin.js';
 
-.fi-color-warning {
+td .fi-color-warning {
   @apply animate-spin;
 }
 
