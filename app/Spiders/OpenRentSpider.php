@@ -81,7 +81,7 @@ class OpenRentSpider extends BasicSpider
         for ($page = 2; $page <= ceil($result_count / 20); $page++) {
             // echo 'requesting page ' . $page . PHP_EOL;
             $skip = ($page - 1) * 20;
-            yield $this->request('GET', "https://www.openrent.co.uk/properties-to-rent/" . $this->context['outcode'] . "?skip=$skip&area=1", 'parsePage');
+            yield $this->request('GET', "https://www.openrent.co.uk/properties-to-rent/" . $this->context['outcode'] . "?skip=$skip&area=" . $this->context['radius'], 'parsePage');
         }
     }
 

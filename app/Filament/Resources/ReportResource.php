@@ -52,6 +52,7 @@ class ReportResource extends Resource
 
                 Forms\Components\TextInput::make('radius')->numeric()
                     ->default(1)
+                    ->helperText('km')
                     ->visible(fn(Get $get): bool =>  $get('source') === 'openrent_scraper'),
 
 
