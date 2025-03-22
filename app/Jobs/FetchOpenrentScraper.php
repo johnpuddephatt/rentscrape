@@ -31,10 +31,12 @@ class FetchOpenrentScraper implements ShouldQueue
         $this->report->status = 'processing';
         $this->report->saveQuietly();
         try {
-            Roach::startSpider(\App\Spiders\OpenRentSpider::class, context: [
-                'report_id' => $this->report->id,
-                'outcode' => $this->report->outcode,
-            ]);
+            foreach ($this->report->outcodes as $outcode) {
+                Roach::startSpider(\App\Spiders\OpenRentSpider::class, context: [
+                    'report_id' => $this->report->id,
+                    'outcode' => $outcode,
+                ]);
+            }
             $this->report->status = 'complete';
             $this->report->saveQuietly();
         } catch (\Exception $e) {

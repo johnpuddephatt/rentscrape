@@ -34,10 +34,10 @@ class ReportResource extends Resource
         return $form
             ->schema([
 
-                Forms\Components\Select::make('outcode')
-                    ->label('Area')
-                    ->options(Outcode::orderBy('outcode')->get()->pluck('outcode', 'outcode'))
-                    ->searchable(),
+                // Forms\Components\Select::make('outcode')
+                //     ->label('Area')
+                //     ->options(Outcode::orderBy('outcode')->get()->pluck('outcode', 'outcode'))
+                //     ->searchable(),
 
                 Forms\Components\Select::make('source')
                     ->options([
@@ -45,6 +45,10 @@ class ReportResource extends Resource
                         'openrent_scraper' => 'OpenRent (Scraper)',
                     ])
                     ->required(),
+
+                Forms\Components\TagsInput::make('outcodes')->splitKeys(['Enter', ','])
+
+
 
                 // Forms\Components\Select::make('status')
                 //     ->options([
@@ -63,9 +67,18 @@ class ReportResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('outcode')
-                    ->searchable()
-                    ->sortable(),
+                // Tables\Columns\TextColumn::make('outcode')
+                //     ->searchable()
+                //     ->sortable(),
+
+                Tables\Columns\TextColumn::make('outcodes')
+                    ->badge()
+                    ->separator(',')
+                // ->state(function (Report $record) {
+                //     return implode(',', $record->outcodes);
+                // })
+                ,
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->sortable(),
 

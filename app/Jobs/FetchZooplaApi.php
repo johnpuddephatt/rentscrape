@@ -31,7 +31,9 @@ class FetchZooplaApi implements ShouldQueue
         $this->report->status = 'processing';
         $this->report->saveQuietly();
         try {
-            $this->fetchZooplaOutcode($this->report->id, $this->report->outcode, 'to-rent');
+            foreach ($this->report->outcodes as $outcode) {
+                $this->fetchZooplaOutcode($this->report->id, $outcode, 'to-rent');
+            }
             $this->report->status = 'complete';
             $this->report->saveQuietly();
         } catch (\Exception $e) {
