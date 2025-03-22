@@ -35,6 +35,7 @@ class FetchOpenrentScraper implements ShouldQueue
                 Roach::startSpider(\App\Spiders\OpenRentSpider::class, context: [
                     'report_id' => $this->report->id,
                     'outcode' => $outcode,
+                    'radius' => $this->report->radius,
                 ]);
             }
             $this->report->status = 'complete';

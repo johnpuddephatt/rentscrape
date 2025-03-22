@@ -15,6 +15,7 @@ class Report extends Model
         'source',
         'status',
         'error',
+        'radius'
     ];
 
     protected $casts = [

@@ -19,9 +19,6 @@ use Illuminate\Support\Facades\Http;
 
 class OpenRentSpider extends BasicSpider
 {
-    public $postcode;
-
-
     // public array $startUrls = [
     //     'https://www.openrent.co.uk/properties-to-rent/LS8?area=1'
     // ];
@@ -31,7 +28,7 @@ class OpenRentSpider extends BasicSpider
         return [
             new Request(
                 'GET',
-                'https://www.openrent.co.uk/properties-to-rent/' . $this->context['outcode'] . '?area=1',
+                'https://www.openrent.co.uk/properties-to-rent/' . $this->context['outcode'] . '?area=' . $this->context['radius'],
                 [$this, 'parse']
             ),
         ];

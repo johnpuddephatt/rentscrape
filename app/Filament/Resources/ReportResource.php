@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Forms\Get;
 
 class ReportResource extends Resource
 {
@@ -44,9 +45,14 @@ class ReportResource extends Resource
                         'zoopla_api' => 'Zoopla (API)',
                         'openrent_scraper' => 'OpenRent (Scraper)',
                     ])
+                    ->live()
                     ->required(),
 
-                Forms\Components\TagsInput::make('outcodes')->splitKeys(['Enter', ','])
+                Forms\Components\TagsInput::make('outcodes')->splitKeys(['Enter', ',']),
+
+                Forms\Components\TextInput::make('radius')->numeric()
+                    ->default(1)
+                    ->visible(fn(Get $get): bool =>  $get('source') === 'openrent_scraper'),
 
 
 
@@ -78,14 +84,11 @@ class ReportResource extends Resource
                 //     return implode(',', $record->outcodes);
                 // })
                 ,
-
                 Tables\Columns\TextColumn::make('created_at')
                     ->sortable(),
-
-
                 Tables\Columns\TextColumn::make('source')
                     ->sortable(),
-
+                Tables\Columns\TextColumn::make('radius'),
                 Tables\Columns\TextColumn::make('Listings')
                     ->state(function (Report $record) {
                         return $record->listings()->count();
