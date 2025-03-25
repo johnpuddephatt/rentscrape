@@ -104,50 +104,58 @@ class OpenRentSpider extends BasicSpider
         $url_parts = explode('/', $url);
         $id = end($url_parts);
 
+        $price = $this->safeFilter($response, ['.fs-d-4.fs-sm-d-3.fw-semibold.text-black', '.mb-1.fs-d-3.fw-semibold.lh-1'], null);
+        $heading = $this->safeFilter($response, ['.fs-d-4.fs-lg-d-3.lh-md-sm', 'h1'], null);
+
         try {
-            $price = $response->filter('.fs-d-4.fs-sm-d-3.fw-semibold.text-black')->text();
-        } catch (\Exception $e) {
+            $postcode = $response->filter('a[href^="/comparebroadband"]')->attr('href');
+            $postcode = Str::of($postcode)
+                ->after('/comparebroadband?postCode=')
+                ->replace('%20', ' ')
+                ->__toString();
+
             try {
-                $price = $response->filter('.mb-1.fs-d-3.fw-semibold.lh-1')->text();
+                $address_data = Http::retry(3, 1000)->get("https://api.postcodes.io/postcodes/{$postcode}")->json()['result'];
             } catch (\Exception $e) {
-                $price = null;
+                $address_data = [];
             }
-        }
-
-        try {
-            $heading = $response->filter('.fs-d-4.fs-lg-d-3.lh-md-sm')->text();
         } catch (\Exception $e) {
-            $heading = $response->filter('h1')->text();
+            $postcode = null;
         }
 
-
-
-        $postcode = $response->filter('a[href^="/comparebroadband"]')->attr('href');
-        $postcode = str_replace('%20', ' ', str_replace('/comparebroadband?postCode=', '', $postcode));
-
-
+        if (!$postcode) {
+            return;
+        }
 
         try {
             $bedrooms = str_replace(' bedrooms', '', $response->filter('[data-lucide="bed"]')->nextAll()->text());
         } catch (\Exception $e) {
-            $bedrooms = $response->filter('[data-lucide="bed"]')->closest('dt')->nextAll()->text();
+            try {
+                $bedrooms = $response->filter('[data-lucide="bed"]')->closest('dt')->nextAll()->text();
+            } catch (\Exception $e) {
+                $bedrooms = null;
+            }
         }
 
         try {
             $bathrooms = str_replace(' bathrooms', '', $response->filter('[data-lucide="bath"]')->nextAll()->text());
         } catch (\Exception $e) {
-            $bathrooms = $response->filter('[data-lucide="bath"]')->closest('dt')->nextAll()->text();
-        }
-
-        try {
-            $tenants = $response->filter('[data-lucide="users"]')->nextAll()->text();
-        } catch (\Exception $e) {
             try {
-                $tenants = $response->filter('[data-lucide="users"]')->closest('dt')->nextAll()->text();
+                $bathrooms = $response->filter('[data-lucide="bath"]')->closest('dt')->nextAll()->text();
             } catch (\Exception $e) {
-                $tenants = null;
+                $bathrooms = null;
             }
         }
+
+        // try {
+        //     $tenants = $response->filter('[data-lucide="users"]')->nextAll()->text();
+        // } catch (\Exception $e) {
+        //     try {
+        //         $tenants = $response->filter('[data-lucide="users"]')->closest('dt')->nextAll()->text();
+        //     } catch (\Exception $e) {
+        //         $tenants = null;
+        //     }
+        // }
 
         if ($heading) {
             if ($pos = strpos($heading, ',')) {
@@ -155,7 +163,11 @@ class OpenRentSpider extends BasicSpider
             }
 
             $heading_parts = explode(',', $heading);
-            $property_type = str_replace($bedrooms . ' Bed ', '', $heading_parts[0]);
+            // replace 'n Bed' where n is a number
+            $property_type = preg_replace('/\d+ Bed /', '', $heading_parts[0]);
+        } else {
+            $address = null;
+            $property_type = null;
         }
 
         try {
@@ -174,11 +186,7 @@ class OpenRentSpider extends BasicSpider
             $preferences = [];
         }
 
-        try {
-            $address_data = Http::retry(3, 1000)->get("https://api.postcodes.io/postcodes/{$postcode}")->json()['result'];
-        } catch (\Exception $e) {
-            $address_data = [];
-        }
+
 
         try {
             $landlord = $response->filterXpath("//h2[text()='Meet the landlord']")->nextAll()->text();
@@ -186,7 +194,6 @@ class OpenRentSpider extends BasicSpider
             try {
                 $landlord = $response->filterXpath("//h2[text()='Meet the Landlord']")->nextAll()->nextAll()->children('p')->text();
             } catch (\Exception $e) {
-                echo '2. No landlord found for ' . $url;
                 $landlord = null;
             }
         }
@@ -195,7 +202,7 @@ class OpenRentSpider extends BasicSpider
         $listing = [
             // 'url'   => $url,
             'description' => $heading,
-            'address' => $address,
+            'address' => $address ?? '',
             'latitude' => $address_data['latitude'] ?? null,
             'longitude' => $address_data['longitude'] ?? null,
             'property_status' => 'to rent',
@@ -229,5 +236,24 @@ class OpenRentSpider extends BasicSpider
         );
 
         yield $this->item($listing);
+    }
+
+    private function safeFilter(Response $response, array $selectors, ?string $default = null): ?string
+    {
+        try {
+            return $response->filter($selectors[0])->text();
+        } catch (\Exception $e) {
+
+            try {
+                return $response->filter($selectors[1])->text();
+            } catch (\Exception $e) {
+
+                try {
+                    return $response->filter($selectors[2])->text();
+                } catch (\Exception $e) {
+                    return $default;
+                }
+            }
+        }
     }
 }
