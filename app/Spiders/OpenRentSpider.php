@@ -51,7 +51,7 @@ class OpenRentSpider extends BasicSpider
         StatsCollectorExtension::class,
     ];
 
-    public int $concurrency = 2;
+    public int $concurrency = 4;
 
     public int $requestDelay = 1;
 
