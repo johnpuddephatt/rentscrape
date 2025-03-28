@@ -65,12 +65,12 @@ class FetchZooplaApi implements ShouldQueue
 
 
             $listings = $json['data']['listings']['regular'];
-            ray($totalPages, $currentPage, $json['data']['pagination']['totalResults'], count($listings));
 
             $prices = Arr::pluck($listings, 'pricing.value');
 
 
             foreach ($listings as $listing) {
+
                 $latitude = $listing['location']['coordinates']['latitude'];
                 $longitude = $listing['location']['coordinates']['longitude'];
 
@@ -102,6 +102,8 @@ class FetchZooplaApi implements ShouldQueue
                                 ->replace(($listing['attributes']['bedrooms'] . ' bed '), ''),
                             'property_status' => str_replace('-', ' ', $listing_type),
                             'description' => $listing['title'],
+
+                            'landlord' => $listing['agent']['branchName'] ?? null,
 
                             'address' => $listing['address'],
                             'latitude' => $listing['location']['coordinates']['latitude'],

@@ -89,7 +89,9 @@ class ReportResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('source')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('radius'),
+                Tables\Columns\TextColumn::make('radius')->state(
+                    fn(Report $record) => $record->source == 'openrent_scrape' ? $record->radius . ' km' : '—'
+                ),
                 Tables\Columns\TextColumn::make('Listings')
                     ->state(function (Report $record) {
                         return $record->listings()->count();
