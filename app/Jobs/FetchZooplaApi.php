@@ -52,7 +52,7 @@ class FetchZooplaApi implements ShouldQueue
         while ($currentPage <= $totalPages || $totalPages === null) {
             $response = Http::withHeaders([
                 'x-rapidapi-host' => 'zoopla.p.rapidapi.com',
-                'x-rapidapi-key' => 'dbb14e07dcmsh1113cc6e5f1914dp15b1e6jsn904fb28e06e2',
+                'x-rapidapi-key' => 'e05b6cba34mshfac615480d8b5ecp1261b1jsnad06f891ed05',
             ])->get("https://zoopla.p.rapidapi.com/properties/v2/list?locationValue={$outcode}&section={$listing_type}&locationIdentifier={$outcode}&page={$currentPage}");
 
             $result = $response->getBody();
@@ -63,7 +63,9 @@ class FetchZooplaApi implements ShouldQueue
                 $totalPages = ceil($json['data']['pagination']['totalResults'] / count($json['data']['listings']['regular']));
             }
 
+
             $listings = $json['data']['listings']['regular'];
+            ray($totalPages, $currentPage, $json['data']['pagination']['totalResults'], count($listings));
 
             $prices = Arr::pluck($listings, 'pricing.value');
 
@@ -79,38 +81,41 @@ class FetchZooplaApi implements ShouldQueue
                 }
                 $postcode = Http::get("https://api.postcodes.io/postcodes/?lon={$longitude}&lat={$latitude}")->json()['result'][0] ?? null;
 
-                ray($listing);
-                Listing::updateOrCreate(
-                    [
-                        'listing_id' => 'Z_' . $listing['listingId'],
-                        'report_id' => $report_id,
-                    ],
-                    [
-                        // 'sale_price' => $listing['pricing']['value'] ?? null,
-                        'rental_price' => $this->priceIsWeekly($listing['pricing']['value'], $prices) ? $listing['pricing']['value'] * 4.34524 : $listing['pricing']['value'],
+                if ($postcode) {
 
-                        'bedrooms' => $listing['attributes']['bedrooms'],
-                        'bathrooms' => $listing['attributes']['bathrooms'],
 
-                        'property_type' => Str::of($listing['title'])
-                            ->replace(' to rent', '')
-                            ->replace(' to buy', '')
-                            ->replace(($listing['attributes']['bedrooms'] . ' bed '), ''),
-                        'property_status' => str_replace('-', ' ', $listing_type),
-                        'description' => $listing['title'],
+                    Listing::updateOrCreate(
+                        [
+                            'listing_id' => 'Z_' . $listing['listingId'],
+                            'report_id' => $report_id,
+                        ],
+                        [
+                            // 'sale_price' => $listing['pricing']['value'] ?? null,
+                            'rental_price' => $this->priceIsWeekly($listing['pricing']['value'], $prices) ? $listing['pricing']['value'] * 4.34524 : $listing['pricing']['value'],
 
-                        'address' => $listing['address'],
-                        'latitude' => $listing['location']['coordinates']['latitude'],
-                        'longitude' => $listing['location']['coordinates']['longitude'],
+                            'bedrooms' => $listing['attributes']['bedrooms'],
+                            'bathrooms' => $listing['attributes']['bathrooms'],
 
-                        'postcode' => $postcode['postcode'] ?? null,
-                        'outcode' => $postcode['outcode'] ?? null,
-                        'district' =>
-                        preg_replace('/[^A-Z].*/', '', $postcode['postcode'] ?? null),
-                        'subcode' => substr($postcode['postcode'] ?? null, 0, -2),
+                            'property_type' => Str::of($listing['title'])
+                                ->replace(' to rent', '')
+                                ->replace(' to buy', '')
+                                ->replace(($listing['attributes']['bedrooms'] . ' bed '), ''),
+                            'property_status' => str_replace('-', ' ', $listing_type),
+                            'description' => $listing['title'],
 
-                    ]
-                );
+                            'address' => $listing['address'],
+                            'latitude' => $listing['location']['coordinates']['latitude'],
+                            'longitude' => $listing['location']['coordinates']['longitude'],
+
+                            'postcode' => $postcode['postcode'] ?? null,
+                            'outcode' => $postcode['outcode'] ?? null,
+                            'district' =>
+                            preg_replace('/[^A-Z].*/', '', $postcode['postcode'] ?? null),
+                            'subcode' => substr($postcode['postcode'] ?? null, 0, -2),
+
+                        ]
+                    );
+                }
             }
             $currentPage++;
         }
