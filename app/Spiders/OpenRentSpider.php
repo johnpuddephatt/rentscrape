@@ -3,6 +3,7 @@
 namespace App\Spiders;
 
 use App\Models\Listing;
+use Exception;
 use Generator;
 use Illuminate\Support\Facades\Log;
 use RoachPHP\Downloader\Middleware\RequestDeduplicationMiddleware;
@@ -115,7 +116,9 @@ class OpenRentSpider extends BasicSpider
                 ->__toString();
 
             try {
-                $address_data = Http::retry(3, 1000)->get("https://api.postcodes.io/postcodes/{$postcode}")->json()['result'];
+                $address_data = Http::timeout(10)->retry(3, function (int $attempt, Exception $esception) {
+                    return $attempt * 1000;
+                })->get("https://api.postcodes.io/postcodes/{$postcode}")->json()['result'];
             } catch (\Exception $e) {
                 $address_data = [];
             }

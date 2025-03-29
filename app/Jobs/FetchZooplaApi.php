@@ -11,6 +11,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\Report;
+use Exception;
 
 class FetchZooplaApi implements ShouldQueue
 {
@@ -50,7 +51,7 @@ class FetchZooplaApi implements ShouldQueue
         $currentPage = 1;
         $totalPages = null;
         while ($currentPage <= $totalPages || $totalPages === null) {
-            $response = Http::withHeaders([
+            $response = Http::retry(3, 3000)->withHeaders([
                 'x-rapidapi-host' => 'zoopla.p.rapidapi.com',
                 'x-rapidapi-key' => 'e05b6cba34mshfac615480d8b5ecp1261b1jsnad06f891ed05',
             ])->get("https://zoopla.p.rapidapi.com/properties/v2/list?locationValue={$outcode}&section={$listing_type}&locationIdentifier={$outcode}&page={$currentPage}");
@@ -75,11 +76,12 @@ class FetchZooplaApi implements ShouldQueue
                 $longitude = $listing['location']['coordinates']['longitude'];
 
                 try {
-                    $postcode = Http::retry(3, 1000)->get("https://api.postcodes.io/postcodes/?lon={$longitude}&lat={$latitude}")->json()['result'][0] ?? null;
+                    $postcode = Http::timeout(10)->retry(3, function (int $attempt, Exception $esception) {
+                        return $attempt * 1000;
+                    })->get("https://api.postcodes.io/postcodes/?lon={$longitude}&lat={$latitude}")->json()['result'][0] ?? null;
                 } catch (\Exception $e) {
                     $postcode = [];
                 }
-                $postcode = Http::get("https://api.postcodes.io/postcodes/?lon={$longitude}&lat={$latitude}")->json()['result'][0] ?? null;
 
                 if ($postcode) {
 
