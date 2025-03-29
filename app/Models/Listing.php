@@ -38,4 +38,9 @@ class Listing extends Model
         'smokers_allowed' => 'boolean',
         'dss_covers_rent' => 'boolean'
     ];
+
+    public function report()
+    {
+        return $this->belongsTo(Report::class);
+    }
 }

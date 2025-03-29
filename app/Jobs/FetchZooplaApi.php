@@ -59,9 +59,11 @@ class FetchZooplaApi implements ShouldQueue
             $result = $response->getBody();
             $json = json_decode($result, true);
 
-            if (!isset($json['data'])) {
+            if (!isset($json['data']) || !isset($json['data']['listings']) || !isset($json['data']['listings']['regular']) || !$json['data']['listings']['regular']) {
+                $totalPages = 0;
                 return;
             }
+
 
             if ($totalPages === null) {
                 $totalPages = ceil($json['data']['pagination']['totalResults'] / count($json['data']['listings']['regular']));
