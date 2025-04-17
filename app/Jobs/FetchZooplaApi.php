@@ -96,7 +96,14 @@ class FetchZooplaApi implements ShouldQueue
                             ],
                             [
                                 // 'sale_price' => $listing['pricing']['value'] ?? null,
-                                'rental_price' => $this->priceIsWeekly($listing['pricing']['value'], $prices) ? $listing['pricing']['value'] * 4.34524 : $listing['pricing']['value'],
+                                // 'rental_price' => $this->priceIsWeekly($listing['pricing']['value'], $prices) ? $listing['pricing']['value'] * 4.34524 : $listing['pricing']['value'],
+                                'rental_price' => match (true) {
+                                    Str::of($listing['pricing']['label'])->contains(['pcm', 'month']) => preg_replace('/[^0-9]/', '', $listing['pricing']['label']),
+                                    Str::of($listing['pricing']['label'])->contains(['pppm', 'person']) => preg_replace('/[^0-9]/', '', $listing['pricing']['label']) * $listing['attributes']['bedrooms'],
+                                    Str::of($listing['pricing']['label'])->contains(['pppw']) => preg_replace('/[^0-9]/', '', $listing['pricing']['label']) * $listing['attributes']['bedrooms'] * 4.34524,
+                                    Str::of($listing['pricing']['label'])->contains(['pw', 'week']) => preg_replace('/[^0-9]/', '', $listing['pricing']['label']) * 4.34524,
+                                    default => '?',
+                                },
 
                                 'bedrooms' => $listing['attributes']['bedrooms'],
                                 'bathrooms' => $listing['attributes']['bathrooms'],
@@ -130,17 +137,17 @@ class FetchZooplaApi implements ShouldQueue
             $currentPage++;
         }
     }
-    private function priceIsWeekly($price, $prices)
-    {
-        $average_prices = array_sum($prices) / count($prices);
-        $stdDev = sqrt(array_sum(array_map(function ($x) use ($average_prices) {
-            return pow($x - $average_prices, 2);
-        }, $prices)) / count($prices));
+    // private function priceIsWeekly($price, $prices)
+    // {
+    //     $average_prices = array_sum($prices) / count($prices);
+    //     $stdDev = sqrt(array_sum(array_map(function ($x) use ($average_prices) {
+    //         return pow($x - $average_prices, 2);
+    //     }, $prices)) / count($prices));
 
-        if ($price < $average_prices - 3 * $stdDev) {
-            return true;
-        } else {
-            return false;
-        }
-    }
+    //     if ($price < $average_prices - 3 * $stdDev) {
+    //         return true;
+    //     } else {
+    //         return false;
+    //     }
+    // }
 }
