@@ -11,6 +11,7 @@ class Listing extends Model
         'listing_id',
 
         'rental_price',
+        'raw_price',
         'postcode',
         'subcode',
         'outcode',

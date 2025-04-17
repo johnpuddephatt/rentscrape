@@ -105,6 +105,8 @@ class FetchZooplaApi implements ShouldQueue
                                     default => '??? ' . $listing['pricing']['label'],
                                 },
 
+                                'raw_price' => $listing['pricing']['label'] ?? null,
+
                                 'bedrooms' => $listing['attributes']['bedrooms'],
                                 'bathrooms' => $listing['attributes']['bathrooms'],
 

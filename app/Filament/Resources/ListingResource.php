@@ -86,6 +86,7 @@ class ListingResource extends Resource
                 Tables\Columns\TextColumn::make('rental_price')
                     ->money('gbp')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('raw_price'),
                 Tables\Columns\TextColumn::make('postcode')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('subcode')

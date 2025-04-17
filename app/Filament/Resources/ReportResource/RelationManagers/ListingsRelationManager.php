@@ -66,6 +66,8 @@ class ListingsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('rental_price')
                     ->money('gbp')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('raw_price')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('postcode')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('property_type')

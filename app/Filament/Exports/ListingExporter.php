@@ -20,6 +20,7 @@ class ListingExporter extends Exporter
             ExportColumn::make('created_at'),
             ExportColumn::make('updated_at'),
             ExportColumn::make('rental_price'),
+            ExportColumn::make('raw_price'),
             ExportColumn::make('postcode'),
             ExportColumn::make('subcode'),
             ExportColumn::make('outcode'),
