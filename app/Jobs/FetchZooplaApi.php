@@ -98,11 +98,11 @@ class FetchZooplaApi implements ShouldQueue
                                 // 'sale_price' => $listing['pricing']['value'] ?? null,
                                 // 'rental_price' => $this->priceIsWeekly($listing['pricing']['value'], $prices) ? $listing['pricing']['value'] * 4.34524 : $listing['pricing']['value'],
                                 'rental_price' => match (true) {
-                                    Str::of($listing['pricing']['label'])->contains(['pcm', 'month']) => preg_replace('/[^0-9]/', '', $listing['pricing']['label']),
                                     Str::of($listing['pricing']['label'])->contains(['pppm', 'person']) => preg_replace('/[^0-9]/', '', $listing['pricing']['label']) * $listing['attributes']['bedrooms'],
+                                    Str::of($listing['pricing']['label'])->contains(['pcm', 'month']) => preg_replace('/[^0-9]/', '', $listing['pricing']['label']),
                                     Str::of($listing['pricing']['label'])->contains(['pppw']) => preg_replace('/[^0-9]/', '', $listing['pricing']['label']) * $listing['attributes']['bedrooms'] * 4.34524,
                                     Str::of($listing['pricing']['label'])->contains(['pw', 'week']) => preg_replace('/[^0-9]/', '', $listing['pricing']['label']) * 4.34524,
-                                    default => '?',
+                                    default => '??? ' . $listing['pricing']['label'],
                                 },
 
                                 'bedrooms' => $listing['attributes']['bedrooms'],
